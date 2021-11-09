@@ -47,7 +47,10 @@ public class AuthServerController {
             response.put("error", "no password");
             return response;
         }
-        if (!values.containsKey("grant_type") || !values.get("grant_type").equals("password")) {
+        if (!values.containsKey("grant_type") ) {
+            response.put("error", "no grant_type");
+            return response;
+        } else if (!values.get("grant_type").equals("password")) {
             response.put("error", "invalid grant_type");
             return response;
         }
