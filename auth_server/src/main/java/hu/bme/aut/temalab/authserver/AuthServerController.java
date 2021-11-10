@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.security.KeyPair;
 import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,10 +37,10 @@ public class AuthServerController {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private KeyPair keyPair;
+    private RSAKey rsaJWK;
 
     @PostMapping
-    public JSONObject createToken(@RequestBody String urlParameters) throws JOSEException {
+    public JSONObject createToken(@RequestBody String urlParameters) throws JOSEException, ParseException {
         String[] parameters = urlParameters.split("&");
         Map<String, String> values = new HashMap<String, String>();
         String key;
@@ -73,20 +74,12 @@ public class AuthServerController {
             return response;
         }
         if(passwordEncoder.matches(values.get("password"), user.getPassword())) {
-            response.put("username", values.get("username"));
-            response.put("password", values.get("password"));
-            response.put("repo_username", user.getName());
-            response.put("repo_password", user.getPassword());
-            response.put("encoded_password", passwordEncoder.encode(values.get("password")));
-            RSAKey rsaJWK = new RSAKeyGenerator(2048)
-                    .keyID("123")
-                    .generate();
             RSAKey rsaPublicJWK = rsaJWK.toPublicJWK();
             JWSSigner signer = new RSASSASigner(rsaJWK);
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(values.get("username"))
                     .issuer("https://c2id.com")
-                    .expirationTime(new Date(new Date().getTime() + 60 * 1000))
+                    .expirationTime(new Date(new Date().getTime() + 600 * 1000))
                     .build();
             SignedJWT signedJWT = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK.getKeyID()).build(),
@@ -95,10 +88,9 @@ public class AuthServerController {
             String s = signedJWT.serialize();
             response.put("access_token", s);
             response.put("token_type", "bearer");
-            response.put("refresh_token", "asdasdasd");
-            response.put("expires_in", 599);
+            long secondsLeft = (signedJWT.getJWTClaimsSet().getExpirationTime().getTime() - new Date().getTime()) / 1000;
+            response.put("expires_in", secondsLeft);
             response.put("scope", "sample");
-            response.put("jti", "asdasdasdasd123");
         } else {
             response.put("error", "wrong password");
         }

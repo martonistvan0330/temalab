@@ -1,5 +1,7 @@
 package hu.bme.aut.temalab.authserver;
 
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,6 +25,18 @@ class KeyConfig {
                     new BigInteger(privateExponent));
             KeyFactory factory = KeyFactory.getInstance("RSA");
             return new KeyPair(factory.generatePublic(publicSpec), factory.generatePrivate(privateSpec));
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Bean
+    RSAKey rsaJWK() {
+        try {
+            RSAKey rsaJWK = new RSAKeyGenerator(2048)
+                    .keyID("123")
+                    .generate();
+            return rsaJWK;
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
