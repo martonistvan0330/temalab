@@ -73,7 +73,6 @@ public class AuthServerController {
             JWSSigner signer = new RSASSASigner(rsaJWK);
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(values.get("username"))
-                    .issuer("https://c2id.com")
                     .expirationTime(new Date(new Date().getTime() + 600 * 1000))
                     .build();
             SignedJWT signedJWT = new SignedJWT(
