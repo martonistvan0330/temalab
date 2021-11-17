@@ -24,31 +24,43 @@ class ClientRegistryController {
     @Autowired
     private val clientPasswordEncoder: PasswordEncoder? = null
 
+    private val bodyHandler: BodyHandler = BodyHandler()
+
+    private lateinit var values: MutableMap<String, String>
+
     @PostMapping
     //@Secured("ROLE_ADMIN")
     @Throws(JOSEException::class, ParseException::class)
     fun addClient(@RequestBody urlParameters: String): JSONObject {
-        val parameters = urlParameters.split("&".toRegex()).toTypedArray()
-        val values: MutableMap<String, String> = HashMap()
-        var key: String
-        var value: String
-        for (parameter in parameters) {
-            key = parameter.split("=".toRegex()).toTypedArray()[0]
-            value = parameter.split("=".toRegex()).toTypedArray()[1]
-            values[key] = value
-        }
+        values = bodyHandler.parseParameters(urlParameters)
         val response = JSONObject()
+        if (!containsAllKeys(response)) {
+            return response;
+        }
+        else {
+            return addClientToRepository()
+        }
+    }
+
+    private fun containsAllKeys(response: JSONObject) : Boolean {
+        if (values.containsKey("username") && values.containsKey("password")) {
+            return true
+        }
         if (!values.containsKey("username")) {
-            response["error"] = "no username"
-            return response
+            response["error_username"] = "no username"
         }
         if (!values.containsKey("password")) {
-            response["error"] = "no password"
-            return response
+            response["error_password"] = "no password"
         }
+        return false
+    }
+
+    private fun addClientToRepository(): JSONObject{
+        val response = JSONObject()
         if (clientRepository!!.existsByUsername(values["username"])) {
-            response["error"] = "username not available"
-        } else {
+            response["error_username"] = "username not available"
+        }
+        else {
             var client = Client()
             client.username = values["username"]
             client.password = clientPasswordEncoder!!.encode(values["password"])

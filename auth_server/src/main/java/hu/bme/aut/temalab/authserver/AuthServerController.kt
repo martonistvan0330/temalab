@@ -8,6 +8,7 @@ import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
+import hu.bme.aut.temalab.authserver.client.Client
 import hu.bme.aut.temalab.authserver.user.User
 import hu.bme.aut.temalab.authserver.user.UserRepository
 import net.minidev.json.JSONObject
@@ -29,64 +30,82 @@ class AuthServerController {
     @Autowired
     private val userPasswordEncoder: PasswordEncoder? = null
 
+    private val bodyHandler: BodyHandler = BodyHandler()
+
+    private lateinit var values: MutableMap<String, String>
+
     @Autowired
     private val rsaJWK: RSAKey? = null
+
     @PostMapping
     @Throws(JOSEException::class, ParseException::class)
     fun createToken(@RequestBody urlParameters: String): JSONObject {
-        val parameters = urlParameters.split("&".toRegex()).toTypedArray()
-        val values: MutableMap<String, String> = HashMap()
-        var key: String
-        var value: String
-        for (parameter in parameters) {
-            key = parameter.split("=".toRegex()).toTypedArray()[0]
-            value = parameter.split("=".toRegex()).toTypedArray()[1]
-            values[key] = value
-        }
+        values = bodyHandler.parseParameters(urlParameters)
         val response = JSONObject()
-        if (!values.containsKey("username")) {
-            response["error"] = "no username"
+        if (!containsAllKeys(response)) {
+            return response;
+        } else if (getErrors(response)) {
             return response
+        } else {
+            return generateToken()
+        }
+    }
+
+    private fun containsAllKeys(response: JSONObject) : Boolean {
+        if (values.containsKey("username") && values.containsKey("password") && values.containsKey("grant_type")) {
+            return true
+        }
+        if (!values.containsKey("username")) {
+            response["error_username"] = "no username"
         }
         if (!values.containsKey("password")) {
-            response["error"] = "no password"
-            return response
+            response["error_password"] = "no password"
         }
         if (!values.containsKey("grant_type")) {
-            response["error"] = "no grant_type"
-            return response
-        } else if (values["grant_type"] != "password") {
-            response["error"] = "invalid grant_type"
-            return response
+            response["error_grant_type"] = "no grant_type"
         }
-        var user: User? = null
-        if (userRepository!!.existsById(values["username"])) {
-            user = userRepository!!.findById(values["username"]).get()
+        return false
+    }
+
+    private fun getErrors(response: JSONObject) : Boolean {
+        if (values["grant_type"] == "password" || values["grant_type"] == "refresh_token") {
+            if (userRepository!!.existsById(values["username"])) {
+                val user = userRepository!!.findById(values["username"]).get();
+                if (userPasswordEncoder!!.matches(values["password"], user.password)) {
+                    return false
+                } else {
+                    response["error_password"] = "wrong password"
+                    return true
+                }
+            } else {
+                response["error_username"] = "user not found"
+                return true
+            }
         } else {
-            response["error"] = "user not found"
-            return response
+            response["error_grant_type"] = "invalid grant_type"
+            return true
         }
-        if (userPasswordEncoder!!.matches(values["password"], user.password)) {
-            val rsaPublicJWK = rsaJWK!!.toPublicJWK()
-            val signer: JWSSigner = RSASSASigner(rsaJWK)
-            val claimsSet = JWTClaimsSet.Builder()
-                .subject(values["username"])
-                .expirationTime(Date(Date().time + 600 * 1000))
-                .build()
-            val signedJWT = SignedJWT(
-                JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK.keyID).build(),
-                claimsSet
-            )
-            signedJWT.sign(signer)
-            val s = signedJWT.serialize()
-            response["access_token"] = s
-            response["token_type"] = "bearer"
-            val secondsLeft = (signedJWT.jwtClaimsSet.expirationTime.time - Date().time) / 1000
-            response["expires_in"] = secondsLeft
-            response["scope"] = "sample"
-        } else {
-            response["error"] = "wrong password"
-        }
+    }
+
+    private fun generateToken(): JSONObject{
+        val response = JSONObject()
+        val user = userRepository!!.findById(values["username"]).get()
+        val rsaPublicJWK = rsaJWK!!.toPublicJWK()
+        val signer: JWSSigner = RSASSASigner(rsaJWK)
+        val claimsSet = JWTClaimsSet.Builder()
+            .subject(values["username"])
+            .expirationTime(Date(Date().time + 600 * 1000))
+            .build()
+        val signedJWT = SignedJWT(
+            JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK.keyID).build(),
+            claimsSet
+        )
+        signedJWT.sign(signer)
+        val s = signedJWT.serialize()
+        response["access_token"] = s
+        response["token_type"] = "bearer"
+        val secondsLeft = (signedJWT.jwtClaimsSet.expirationTime.time - Date().time) / 1000
+        response["expires_in"] = secondsLeft
         return response
     }
 }
