@@ -9,6 +9,7 @@ class Client {
     @GeneratedValue
     var id: Long? = null
 
+    @Column(unique=true)
     var username: String? = null
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)

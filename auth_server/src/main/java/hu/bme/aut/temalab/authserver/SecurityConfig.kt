@@ -51,7 +51,7 @@ open class SecurityConfig : WebSecurityConfigurerAdapter() {
         http
             .csrf().disable()
             .authorizeRequests()
-            .mvcMatchers(HttpMethod.OPTIONS, "/oauth/token").permitAll()
+            .mvcMatchers(HttpMethod.OPTIONS, "/oauth/token").hasAnyRole()
             .mvcMatchers("/.well-known/jwks.json").permitAll()
             .anyRequest().authenticated()
             .and()
