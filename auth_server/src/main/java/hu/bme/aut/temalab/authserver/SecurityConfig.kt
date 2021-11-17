@@ -1,5 +1,6 @@
 package hu.bme.aut.temalab.authserver
 
+import hu.bme.aut.temalab.authserver.client.ClientDetailsServiceImpl
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -22,16 +23,16 @@ import java.util.List
 @EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true, jsr250Enabled = true)
 open class SecurityConfig : WebSecurityConfigurerAdapter() {
     @Autowired
-    private val userDetailsService: UserDetailsService? = null
+    private val clientDetailsService: ClientDetailsServiceImpl? = null
 
     @Autowired
-    private val passwordEncoder: PasswordEncoder? = null
+    private val clientPasswordEncoder: PasswordEncoder? = null
 
     @Throws(Exception::class)
     public override fun configure(auth: AuthenticationManagerBuilder) {
         auth
-            .userDetailsService(userDetailsService)
-            .passwordEncoder(passwordEncoder)
+            .userDetailsService(clientDetailsService)
+            .passwordEncoder(clientPasswordEncoder)
     }
 
     @Bean
@@ -42,20 +43,19 @@ open class SecurityConfig : WebSecurityConfigurerAdapter() {
 
     @Bean
     override fun userDetailsService(): UserDetailsService {
-        return userDetailsService!!
+        return clientDetailsService!!
     }
 
     @Throws(Exception::class)
     override fun configure(http: HttpSecurity) {
         http
+            .csrf().disable()
             .authorizeRequests()
             .mvcMatchers(HttpMethod.OPTIONS, "/oauth/token").permitAll()
             .mvcMatchers("/.well-known/jwks.json").permitAll()
-            .anyRequest().permitAll()
+            .anyRequest().authenticated()
             .and()
             .httpBasic()
-            .and()
-            .csrf().disable()
     }
 
     @Bean

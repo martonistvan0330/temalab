@@ -8,6 +8,8 @@ import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
+import hu.bme.aut.temalab.authserver.user.User
+import hu.bme.aut.temalab.authserver.user.UserRepository
 import net.minidev.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -25,7 +27,7 @@ class AuthServerController {
     var userRepository: UserRepository? = null
 
     @Autowired
-    private val passwordEncoder: PasswordEncoder? = null
+    private val userPasswordEncoder: PasswordEncoder? = null
 
     @Autowired
     private val rsaJWK: RSAKey? = null
@@ -64,7 +66,7 @@ class AuthServerController {
             response["error"] = "user not found"
             return response
         }
-        if (passwordEncoder!!.matches(values["password"], user.password)) {
+        if (userPasswordEncoder!!.matches(values["password"], user.password)) {
             val rsaPublicJWK = rsaJWK!!.toPublicJWK()
             val signer: JWSSigner = RSASSASigner(rsaJWK)
             val claimsSet = JWTClaimsSet.Builder()

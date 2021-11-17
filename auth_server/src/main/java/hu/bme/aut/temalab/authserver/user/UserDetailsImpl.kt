@@ -1,5 +1,7 @@
-package hu.bme.aut.temalab.authserver
+package hu.bme.aut.temalab.authserver.user
 
+import hu.bme.aut.temalab.authserver.client.Client
+import hu.bme.aut.temalab.authserver.user.User
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails

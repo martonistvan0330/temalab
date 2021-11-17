@@ -1,4 +1,4 @@
-package hu.bme.aut.temalab.authserver
+package hu.bme.aut.temalab.authserver.user
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import javax.persistence.ElementCollection
