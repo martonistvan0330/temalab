@@ -11,6 +11,7 @@ import com.nimbusds.jwt.SignedJWT
 import hu.bme.aut.temalab.authserver.client.Client
 import hu.bme.aut.temalab.authserver.user.User
 import hu.bme.aut.temalab.authserver.user.UserRepository
+import jdk.internal.org.jline.utils.Colors.s
 import net.minidev.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -47,48 +48,70 @@ class AuthServerController {
         } else if (getErrors(response)) {
             return response
         } else {
-            return generateToken()
+            return generateResponse()
         }
     }
 
     private fun containsAllKeys(response: JSONObject) : Boolean {
-        if (values.containsKey("username") && values.containsKey("password") && values.containsKey("grant_type")) {
-            return true
-        }
-        if (!values.containsKey("username")) {
-            response["error_username"] = "no username"
-        }
-        if (!values.containsKey("password")) {
-            response["error_password"] = "no password"
-        }
-        if (!values.containsKey("grant_type")) {
+        var contains = true;
+        if (values.containsKey("grant_type")) {
+            if (values["grant_type"] == "password") {
+                if (!values.containsKey("username")) {
+                    response["error_username"] = "no username"
+                    contains = false
+                }
+                if (!values.containsKey("password")) {
+                    response["error_password"] = "no password"
+                    contains = false
+                }
+            }
+            if (values["grant_type"] == "refresh_token") {
+                if (!values.containsKey("refresh_token")) {
+                    response["error_refresh_token"] = "no refresh_token"
+                    contains = false
+                }
+            }
+        } else {
             response["error_grant_type"] = "no grant_type"
+            contains = false
         }
-        return false
+        return contains
     }
 
     private fun getErrors(response: JSONObject) : Boolean {
+        var error = false;
         if (values["grant_type"] == "password" || values["grant_type"] == "refresh_token") {
-            if (userRepository!!.existsById(values["username"])) {
-                val user = userRepository!!.findById(values["username"]).get();
-                if (userPasswordEncoder!!.matches(values["password"], user.password)) {
-                    return false
+            if (values["grant_type"] == "password") {
+                if (userRepository!!.existsById(values["username"])) {
+                    val user = userRepository!!.findById(values["username"]).get();
+                    if (!userPasswordEncoder!!.matches(values["password"], user.password)) {
+                        response["error_password"] = "wrong password"
+                        error = true
+                    }
                 } else {
-                    response["error_password"] = "wrong password"
-                    return true
+                    response["error_username"] = "user not found"
+                    error = true
                 }
-            } else {
-                response["error_username"] = "user not found"
-                return true
+            }
+            if (values["grant_type"] == "refresh_token") {
+
             }
         } else {
             response["error_grant_type"] = "invalid grant_type"
-            return true
+            error = true
         }
+        return error
     }
 
-    private fun generateToken(): JSONObject{
+    private fun generateResponse(): JSONObject {
         val response = JSONObject()
+        generateAccessToken(response)
+        response["token_type"] = "bearer"
+        generateRefreshToken(response)
+        return response
+    }
+
+    private fun generateAccessToken(response: JSONObject){
         val user = userRepository!!.findById(values["username"]).get()
         val rsaPublicJWK = rsaJWK!!.toPublicJWK()
         val signer: JWSSigner = RSASSASigner(rsaJWK)
@@ -103,9 +126,11 @@ class AuthServerController {
         signedJWT.sign(signer)
         val s = signedJWT.serialize()
         response["access_token"] = s
-        response["token_type"] = "bearer"
         val secondsLeft = (signedJWT.jwtClaimsSet.expirationTime.time - Date().time) / 1000
         response["expires_in"] = secondsLeft
-        return response
+    }
+
+    private fun generateRefreshToken(response: JSONObject){
+
     }
 }
