@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController
 class MyController {
     @GetMapping("/")
     fun index(@AuthenticationPrincipal jwt: Jwt?): String {
-        return String.format("Hello, %s!", if (jwt == null) "guest" else jwt.subject)
+        return String.format("Hello, %s!", if (jwt == null) "guest" else jwt?.subject ?: "guest")
     }
 
     @GetMapping("/message")
