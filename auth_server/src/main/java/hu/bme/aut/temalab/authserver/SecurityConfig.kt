@@ -56,6 +56,7 @@ open class SecurityConfig : WebSecurityConfigurerAdapter() {
             .mvcMatchers("/.well-known/jwks.json").permitAll()
             .mvcMatchers("/api/users").hasRole("ADMIN")
             .mvcMatchers("/api/clients").hasRole("ADMIN")
+            .mvcMatchers("/api/tokens").hasRole("ADMIN")
             .anyRequest().authenticated()
             .and()
             .httpBasic()
