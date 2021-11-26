@@ -5,14 +5,17 @@ import org.springframework.data.jpa.domain.AbstractPersistable_.id
 import javax.persistence.*
 
 @Entity
+@Table(name="tokens")
 class Token {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="ID")
     var id: Long? = null
 
+    @Column(name="username")
     var username: String? = null
 
-    @Column(unique=true)
+    @Column(unique=true, name="jti")
     var jti: String? = null
 
     override fun hashCode(): Int {

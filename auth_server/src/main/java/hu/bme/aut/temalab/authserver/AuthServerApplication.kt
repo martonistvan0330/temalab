@@ -27,24 +27,24 @@ open class AuthServerApplication : CommandLineRunner {
     @Throws(Exception::class)
     override fun run(vararg args: String) {
         val user = User()
-        user.name = "demo"
+        user.username = "demo"
         user.password = userPasswordEncoder!!.encode("demo")
         user.isEnabled = true
         user.roles = listOf("ROLE_USER")
 
         val admin = User()
-        admin.name = "admin"
+        admin.username = "admin"
         admin.password = userPasswordEncoder!!.encode("admin")
         admin.isEnabled = true
         admin.roles = listOf("ROLE_ADMIN")
 
         userRepository!!.saveAll(listOf(user, admin))
 
-        val basicClient = Client()
-        basicClient.username = "client"
-        basicClient.password = clientPasswordEncoder!!.encode("secret")
-        basicClient.isEnabled = true
-        basicClient.roles = listOf("ROLE_CLIENT")
+        val client = Client()
+        client.username = "client"
+        client.password = clientPasswordEncoder!!.encode("secret")
+        client.isEnabled = true
+        client.roles = listOf("ROLE_CLIENT")
 
         val adminClient = Client()
         adminClient.username = "admin"
@@ -52,7 +52,7 @@ open class AuthServerApplication : CommandLineRunner {
         adminClient.isEnabled = true
         adminClient.roles = listOf("ROLE_ADMIN")
 
-        clientRepository!!.saveAll(listOf(basicClient, adminClient))
+        clientRepository!!.saveAll(listOf(client, adminClient))
     }
 }
 

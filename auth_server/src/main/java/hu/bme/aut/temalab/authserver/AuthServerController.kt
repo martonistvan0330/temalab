@@ -163,7 +163,7 @@ class AuthServerController {
         response["access_token"] = s
         val secondsLeft = (signedJWT.jwtClaimsSet.expirationTime.time - Date().time) / 1000
         response["access_token_expires_in"] = secondsLeft
-        var token = Token()
+        val token = Token()
         token.username = username
         token.jti = jti
         tokenRepository!!.save(token)
