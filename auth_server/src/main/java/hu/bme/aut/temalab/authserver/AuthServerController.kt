@@ -82,8 +82,8 @@ class AuthServerController {
         var error = false
         if (values["grant_type"] == "password" || values["grant_type"] == "refresh_token") {
             if (values["grant_type"] == "password") {
-                if (userRepository!!.existsById(values["username"])) {
-                    val user = userRepository!!.findById(values["username"]).get()
+                if (userRepository!!.existsByUsername(values["username"])) {
+                    val user = userRepository!!.findByUsername(values["username"]).get()
                     if (!userPasswordEncoder!!.matches(values["password"], user.password)) {
                         response["error_password"] = "wrong password"
                         error = true

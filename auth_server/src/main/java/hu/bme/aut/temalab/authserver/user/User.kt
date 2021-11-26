@@ -7,7 +7,11 @@ import javax.persistence.*
 @Table(name="users")
 class User {
     @Id
-    @Column(name="username")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name="ID")
+    var id: Long? = null
+
+    @Column(unique=true, name="username")
     var username: String? = null
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
