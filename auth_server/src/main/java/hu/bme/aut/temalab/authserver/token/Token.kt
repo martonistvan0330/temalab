@@ -7,11 +7,13 @@ import javax.persistence.*
 @Entity
 class Token {
     @Id
+    @GeneratedValue
+    var id: Long? = null
+
     var username: String? = null
 
-    @CollectionTable
-    @ElementCollection
-    var jtis: MutableList<JTI>? = null
+    @Column(unique=true)
+    var jti: String? = null
 
     override fun hashCode(): Int {
         val prime = 31

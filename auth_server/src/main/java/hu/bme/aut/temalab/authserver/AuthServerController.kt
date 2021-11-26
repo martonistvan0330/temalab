@@ -5,7 +5,6 @@ import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import hu.bme.aut.temalab.authserver.token.JTI
 import hu.bme.aut.temalab.authserver.token.Token
 import hu.bme.aut.temalab.authserver.token.TokenRepository
 import hu.bme.aut.temalab.authserver.user.UserRepository
@@ -45,7 +44,7 @@ class AuthServerController {
         values = bodyHandler.parseParameters(urlParameters)
         val response = JSONObject()
         if (!containsAllKeys(response)) {
-            return response;
+            return response
         } else if (getErrors(response)) {
             return response
         } else {
@@ -54,7 +53,7 @@ class AuthServerController {
     }
 
     private fun containsAllKeys(response: JSONObject) : Boolean {
-        var contains = true;
+        var contains = true
         if (values.containsKey("grant_type")) {
             if (values["grant_type"] == "password") {
                 if (!values.containsKey("username")) {
@@ -80,11 +79,11 @@ class AuthServerController {
     }
 
     private fun getErrors(response: JSONObject) : Boolean {
-        var error = false;
+        var error = false
         if (values["grant_type"] == "password" || values["grant_type"] == "refresh_token") {
             if (values["grant_type"] == "password") {
                 if (userRepository!!.existsById(values["username"])) {
-                    val user = userRepository!!.findById(values["username"]).get();
+                    val user = userRepository!!.findById(values["username"]).get()
                     if (!userPasswordEncoder!!.matches(values["password"], user.password)) {
                         response["error_password"] = "wrong password"
                         error = true
@@ -108,19 +107,25 @@ class AuthServerController {
     }
 
     private fun valid(refreshToken: String?): Boolean {
-        val signedJWT = SignedJWT.parse(refreshToken);
+        val signedJWT = SignedJWT.parse(refreshToken)
         val jti = signedJWT.jwtClaimsSet.jwtid
         val expirationTime = signedJWT.jwtClaimsSet.expirationTime.time
-        if (Date().time < expirationTime && tokenRepository!!.existsByJtis_jti(jti)) {
-            return true
+        if (tokenRepository!!.existsByJti(jti)) {
+            if (Date().time < expirationTime) {
+                return true
+            } else {
+                val token = tokenRepository!!.findByJti(jti).get()
+                tokenRepository!!.deleteById(token.id)
+                return false
+            }
         }
         return false
     }
 
     private fun getUsername(refreshToken: String?): String? {
-        val signedJWT = SignedJWT.parse(refreshToken);
+        val signedJWT = SignedJWT.parse(refreshToken)
         val jti = signedJWT.jwtClaimsSet.jwtid
-        val token = tokenRepository!!.findByJtis_jti(jti).get()
+        val token = tokenRepository!!.findByJti(jti).get()
         return token.username
     }
 
@@ -159,20 +164,8 @@ class AuthServerController {
         val secondsLeft = (signedJWT.jwtClaimsSet.expirationTime.time - Date().time) / 1000
         response["access_token_expires_in"] = secondsLeft
         var token = Token()
-        val objJTI = JTI()
-        objJTI.jti = jti
-        if (tokenRepository!!.existsById(username)) {
-            val token = tokenRepository!!.findById(username).get()
-            var jtis = token.jtis
-            jtis!!.add(objJTI)
-            token.jtis = jtis
-            System.out.println(token.username)
-            System.out.println(jtis)
-            System.out.println(token.jtis)
-            tokenRepository!!.save(token)
-        }
         token.username = username
-        token.jtis = mutableListOf(objJTI)
+        token.jti = jti
         tokenRepository!!.save(token)
         return jti
     }

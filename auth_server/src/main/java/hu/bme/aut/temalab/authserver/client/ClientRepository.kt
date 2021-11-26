@@ -6,6 +6,6 @@ import java.util.*
 
 @Repository
 interface ClientRepository : JpaRepository<Client?, Long?> {
-    abstract fun findByUsername(username: String?): Optional<Client>
-    abstract fun existsByUsername(username: String?): Boolean
+    fun findByUsername(username: String?): Optional<Client>
+    fun existsByUsername(username: String?): Boolean
 }

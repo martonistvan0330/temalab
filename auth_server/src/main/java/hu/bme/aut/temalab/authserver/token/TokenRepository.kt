@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface TokenRepository : JpaRepository<Token?, String?> {
-    fun findByJtis_jti(jti: String?): Optional<Token>
-    fun existsByJtis_jti(jti: String?): Boolean
+interface TokenRepository : JpaRepository<Token?, Long?> {
+    fun existsByJti(jti: String?): Boolean
+    fun findByJti(jti: String?): Optional<Token>
 }
