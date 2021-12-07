@@ -10,10 +10,10 @@ class Client {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
 
-    var username: String? = null
+    var name: String? = null
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    var password: String? = null
+    var secret: String? = null
 
     var isEnabled = false
 

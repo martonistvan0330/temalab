@@ -16,11 +16,11 @@ class ClientDetailsImpl(private val client: Client) : UserDetails {
     }
 
     override fun getPassword(): String {
-        return client.password!!
+        return client.secret!!
     }
 
     override fun getUsername(): String {
-        return client.username!!
+        return client.name!!
     }
 
     override fun isAccountNonExpired(): Boolean {

@@ -41,14 +41,14 @@ open class AuthServerApplication : CommandLineRunner {
         userRepository!!.saveAll(listOf(user, admin))
 
         val client = Client()
-        client.username = "client"
-        client.password = clientPasswordEncoder!!.encode("secret")
+        client.name = "client"
+        client.secret = clientPasswordEncoder!!.encode("secret")
         client.isEnabled = true
         client.roles = listOf("ROLE_CLIENT")
 
         val adminClient = Client()
-        adminClient.username = "admin"
-        adminClient.password = clientPasswordEncoder!!.encode("admin")
+        adminClient.name = "admin"
+        adminClient.secret = clientPasswordEncoder!!.encode("admin")
         adminClient.isEnabled = true
         adminClient.roles = listOf("ROLE_ADMIN")
 

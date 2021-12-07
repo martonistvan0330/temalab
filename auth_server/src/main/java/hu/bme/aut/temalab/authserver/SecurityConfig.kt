@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
+import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.cors.CorsConfiguration
@@ -49,11 +50,15 @@ open class SecurityConfig : WebSecurityConfigurerAdapter() {
     @Throws(Exception::class)
     override fun configure(http: HttpSecurity) {
         http
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
             .csrf().disable()
             .authorizeRequests()
             .mvcMatchers(HttpMethod.OPTIONS, "/oauth/token").hasAnyRole()
-            .mvcMatchers( "/oauth/clients").permitAll()
-            .mvcMatchers("/oauth/clients/all").hasRole("ADMIN")
+            .mvcMatchers(HttpMethod.OPTIONS, "/oauth/clients").permitAll()
+            //.mvcMatchers(HttpMethod.OPTIONS, "/oauth/clients/update").hasAnyRole()
+            .mvcMatchers(HttpMethod.OPTIONS, "/oauth/clients/update").authenticated()
+            .mvcMatchers(HttpMethod.OPTIONS, "/oauth/clients/delete").hasAnyRole()
+            .mvcMatchers(HttpMethod.OPTIONS, "/oauth/admin").hasRole("ADMIN")
             .mvcMatchers("/.well-known/jwks.json").permitAll()
             .mvcMatchers("/api/users").hasRole("ADMIN")
             .anyRequest().authenticated()
