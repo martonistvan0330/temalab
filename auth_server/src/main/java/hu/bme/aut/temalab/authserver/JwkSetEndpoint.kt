@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.ResponseBody
 @Controller
 internal class JwkSetEndpoint {
     @Autowired
-    private val rsaJWK: RSAKey? = null
+    private val rsaJWKAccess: RSAKey? = null
 
     @get:ResponseBody
     @get:GetMapping("/.well-known/jwks.json")
     val key: Map<String, Any>
         get() {
-            val rsaPublicJWK = rsaJWK!!.toPublicJWK()
+            val rsaPublicJWK = rsaJWKAccess!!.toPublicJWK()
             return JWKSet(rsaPublicJWK).toJSONObject()
         }
 }

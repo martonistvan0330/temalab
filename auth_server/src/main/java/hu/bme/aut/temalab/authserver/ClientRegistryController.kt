@@ -6,6 +6,8 @@ import hu.bme.aut.temalab.authserver.client.ClientRepository
 import hu.bme.aut.temalab.authserver.user.User
 import net.minidev.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.annotation.Secured
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.PostMapping
@@ -16,7 +18,7 @@ import java.text.ParseException
 import java.util.HashMap
 
 @RestController
-@RequestMapping("/oauth/client/add")
+@RequestMapping("/oauth/clients")
 class ClientRegistryController {
     @Autowired
     var clientRepository: ClientRepository? = null
@@ -28,21 +30,24 @@ class ClientRegistryController {
 
     private lateinit var values: MutableMap<String, String>
 
-    @PostMapping
-    //@Secured("ROLE_ADMIN")
+    private lateinit var response: JSONObject
+
+    @PostMapping("/add")
     @Throws(JOSEException::class, ParseException::class)
-    fun addClient(@RequestBody urlParameters: String): JSONObject {
+    fun addClient(@RequestBody urlParameters: String): ResponseEntity<JSONObject> {
         values = bodyHandler.parseParameters(urlParameters)
-        val response = JSONObject()
-        if (!containsAllKeys(response)) {
-            return response;
-        }
-        else {
-            return addClientToRepository()
+        response = JSONObject()
+        if (!containsAllKeys()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
+        } else if (!usernameAvailable()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
+        } else {
+            addClientToRepository()
+            return ResponseEntity.ok(response)
         }
     }
 
-    private fun containsAllKeys(response: JSONObject) : Boolean {
+    private fun containsAllKeys() : Boolean {
         if (values.containsKey("username") && values.containsKey("password")) {
             return true
         }
@@ -55,21 +60,23 @@ class ClientRegistryController {
         return false
     }
 
-    private fun addClientToRepository(): JSONObject{
-        val response = JSONObject()
+    private fun usernameAvailable(): Boolean {
         if (clientRepository!!.existsByUsername(values["username"])) {
             response["error_username"] = "username not available"
+            return false
+        } else {
+            return true
         }
-        else {
-            var client = Client()
-            client.username = values["username"]
-            client.password = clientPasswordEncoder!!.encode(values["password"])
-            client.isEnabled = true;
-            client.roles = listOf("ROLE_CLIENT");
-            clientRepository!!.saveAll(listOf(client))
-            response["message"] = "client saved"
-            response["username"] = values["username"]
-        }
-        return response
+    }
+
+    private fun addClientToRepository() {
+        var client = Client()
+        client.username = values["username"]
+        client.password = clientPasswordEncoder!!.encode(values["password"])
+        client.isEnabled = true;
+        client.roles = listOf("ROLE_CLIENT");
+        clientRepository!!.saveAll(listOf(client))
+        response["message"] = "client saved"
+        response["username"] = values["username"]
     }
 }

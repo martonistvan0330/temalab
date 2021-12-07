@@ -9,7 +9,18 @@ import org.springframework.context.annotation.Configuration
 open class KeyConfig {
 
     @Bean
-    open fun rsaJWK(): RSAKey {
+    open fun rsaJWKAccess(): RSAKey {
+        return try {
+            RSAKeyGenerator(2048)
+                .keyID("123")
+                .generate()
+        } catch (e: Exception) {
+            throw IllegalArgumentException(e)
+        }
+    }
+
+    @Bean
+    open fun rsaJWKRefresh(): RSAKey {
         return try {
             RSAKeyGenerator(2048)
                 .keyID("123")

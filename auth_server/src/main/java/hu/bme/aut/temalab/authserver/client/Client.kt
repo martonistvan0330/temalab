@@ -5,23 +5,19 @@ import javax.persistence.*
 
 @Entity
 class Client {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="ID")
     var id: Long? = null
 
-    @Column(unique=true, name="username")
     var username: String? = null
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(name="password")
     var password: String? = null
 
-    @Column(name="enabled")
     var isEnabled = false
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @Column(name="roles")
     var roles: List<String>? = null
 
     override fun hashCode(): Int {

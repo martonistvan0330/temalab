@@ -2,14 +2,16 @@ package hu.bme.aut.temalab.authserver
 
 import com.nimbusds.jose.*
 import com.nimbusds.jose.crypto.RSASSASigner
+import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
-import hu.bme.aut.temalab.authserver.token.Token
-import hu.bme.aut.temalab.authserver.token.TokenRepository
 import hu.bme.aut.temalab.authserver.user.UserRepository
 import net.minidev.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.security.access.annotation.Secured
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -26,9 +28,6 @@ class AuthServerController {
     var userRepository: UserRepository? = null
 
     @Autowired
-    var tokenRepository: TokenRepository? = null
-
-    @Autowired
     private val userPasswordEncoder: PasswordEncoder? = null
 
     private val bodyHandler: BodyHandler = BodyHandler()
@@ -36,23 +35,29 @@ class AuthServerController {
     private lateinit var values: MutableMap<String, String>
 
     @Autowired
-    private val rsaJWK: RSAKey? = null
+    private val rsaJWKAccess: RSAKey? = null
+
+    @Autowired
+    private val rsaJWKRefresh: RSAKey? = null
+
+    private lateinit var response: JSONObject
 
     @PostMapping
+    @Secured
     @Throws(JOSEException::class, ParseException::class)
-    fun createToken(@RequestBody urlParameters: String): JSONObject {
+    fun createToken(@RequestBody urlParameters: String): ResponseEntity<JSONObject> {
         values = bodyHandler.parseParameters(urlParameters)
-        val response = JSONObject()
-        if (!containsAllKeys(response)) {
-            return response
-        } else if (getErrors(response)) {
-            return response
+        response = JSONObject()
+        if (!containsAllKeys()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
+        } else if (getErrors()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
         } else {
-            return generateResponse()
+            return ResponseEntity.ok(generateResponse())
         }
     }
 
-    private fun containsAllKeys(response: JSONObject) : Boolean {
+    private fun containsAllKeys() : Boolean {
         var contains = true
         if (values.containsKey("grant_type")) {
             if (values["grant_type"] == "password") {
@@ -78,7 +83,7 @@ class AuthServerController {
         return contains
     }
 
-    private fun getErrors(response: JSONObject) : Boolean {
+    private fun getErrors() : Boolean {
         var error = false
         if (values["grant_type"] == "password" || values["grant_type"] == "refresh_token") {
             if (values["grant_type"] == "password") {
@@ -108,29 +113,21 @@ class AuthServerController {
 
     private fun valid(refreshToken: String?): Boolean {
         val signedJWT = SignedJWT.parse(refreshToken)
-        val jti = signedJWT.jwtClaimsSet.jwtid
         val expirationTime = signedJWT.jwtClaimsSet.expirationTime.time
-        if (tokenRepository!!.existsByJti(jti)) {
-            if (Date().time < expirationTime) {
-                return true
-            } else {
-                val token = tokenRepository!!.findByJti(jti).get()
-                tokenRepository!!.deleteById(token.id)
-                return false
-            }
+        val rsaPublicJWKRefresh = rsaJWKRefresh!!.toPublicJWK()
+        val verifier = RSASSAVerifier(rsaPublicJWKRefresh)
+        if (signedJWT.verify(verifier)) {
+            return Date().time < expirationTime
         }
         return false
     }
 
     private fun getUsername(refreshToken: String?): String? {
         val signedJWT = SignedJWT.parse(refreshToken)
-        val jti = signedJWT.jwtClaimsSet.jwtid
-        val token = tokenRepository!!.findByJti(jti).get()
-        return token.username
+        return signedJWT.jwtClaimsSet.subject
     }
 
     private fun generateResponse(): JSONObject {
-        val response = JSONObject()
         var username: String? = null
         if (values["grant_type"] == "password") {
             username = values["username"]
@@ -138,16 +135,16 @@ class AuthServerController {
         if (values["grant_type"] == "refresh_token") {
             username = getUsername(values["refresh_token"])
         }
-        val jti = generateAccessToken(response, username)
+        val jti = generateAccessToken(username)
         response["token_type"] = "bearer"
-        generateRefreshToken(response, jti)
+        generateRefreshToken(username, jti)
         response["scope"] = "sample"
         response["jti"] = jti
         return response
     }
 
-    private fun generateAccessToken(response: JSONObject, username: String?): String{
-        val signer: JWSSigner = RSASSASigner(rsaJWK)
+    private fun generateAccessToken(username: String?): String{
+        val signer: JWSSigner = RSASSASigner(rsaJWKAccess)
         val jti = UUID.randomUUID().toString()
         val claimsSet = JWTClaimsSet.Builder()
             .subject(username)
@@ -155,7 +152,7 @@ class AuthServerController {
             .jwtID(jti)
             .build()
         val signedJWT = SignedJWT(
-            JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK!!.keyID).build(),
+            JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWKAccess!!.keyID).build(),
             claimsSet
         )
         signedJWT.sign(signer)
@@ -163,21 +160,18 @@ class AuthServerController {
         response["access_token"] = s
         val secondsLeft = (signedJWT.jwtClaimsSet.expirationTime.time - Date().time) / 1000
         response["access_token_expires_in"] = secondsLeft
-        val token = Token()
-        token.username = username
-        token.jti = jti
-        tokenRepository!!.save(token)
         return jti
     }
 
-    private fun generateRefreshToken(response: JSONObject, jti: String){
-        val signer: JWSSigner = RSASSASigner(rsaJWK)
+    private fun generateRefreshToken(username: String?, jti: String){
+        val signer: JWSSigner = RSASSASigner(rsaJWKRefresh)
         val claimsSet = JWTClaimsSet.Builder()
+            .subject(username)
             .expirationTime(Date(Date().time + 3600 * 1000))
             .jwtID(jti)
             .build()
         val signedJWT = SignedJWT(
-            JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWK!!.keyID).build(),
+            JWSHeader.Builder(JWSAlgorithm.RS256).keyID(rsaJWKRefresh!!.keyID).build(),
             claimsSet
         )
         signedJWT.sign(signer)

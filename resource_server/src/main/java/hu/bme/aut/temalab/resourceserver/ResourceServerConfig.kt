@@ -7,7 +7,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 
 @Configuration
 @EnableWebSecurity
-class ResourceServerConfig : WebSecurityConfigurerAdapter() {
+open class ResourceServerConfig : WebSecurityConfigurerAdapter() {
     @Throws(Exception::class)
     override fun configure(http: HttpSecurity) {
         http.authorizeRequests()
