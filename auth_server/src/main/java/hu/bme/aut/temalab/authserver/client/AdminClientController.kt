@@ -1,6 +1,7 @@
 package hu.bme.aut.temalab.authserver.client
 
-import net.minidev.json.JSONObject
+
+import com.nimbusds.jose.shaded.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.jpa.domain.AbstractPersistable_.id
 import org.springframework.http.ResponseEntity

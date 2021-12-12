@@ -1,7 +1,7 @@
 package hu.bme.aut.temalab.authserver.client
 
 import com.nimbusds.jose.JOSEException
-import net.minidev.json.JSONObject
+import com.nimbusds.jose.shaded.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

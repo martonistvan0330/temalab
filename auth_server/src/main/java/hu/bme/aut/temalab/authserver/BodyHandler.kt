@@ -1,6 +1,5 @@
 package hu.bme.aut.temalab.authserver
 
-import net.minidev.json.JSONObject
 import java.util.HashMap
 
 class BodyHandler {

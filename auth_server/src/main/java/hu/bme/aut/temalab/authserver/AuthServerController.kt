@@ -4,10 +4,10 @@ import com.nimbusds.jose.*
 import com.nimbusds.jose.crypto.RSASSASigner
 import com.nimbusds.jose.crypto.RSASSAVerifier
 import com.nimbusds.jose.jwk.RSAKey
+import com.nimbusds.jose.shaded.json.JSONObject
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import hu.bme.aut.temalab.authserver.user.UserRepository
-import net.minidev.json.JSONObject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
